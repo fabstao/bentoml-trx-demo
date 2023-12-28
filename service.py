@@ -7,18 +7,21 @@ import pydantic
 
 import bentoml
 from download_model import TEXT
+from download_model import CONTEXT
 from download_model import CATEGORIES
 from download_model import get_runner
 from download_model import MAX_LENGTH
 from download_model import summarization_model
 from download_model import classification_model
+from download_model import question_answering_model
 from download_model import CATEGORICAL_THRESHOLD
 
 summarizer_runner = get_runner("summarization", summarization_model)
 categorizer_runner = get_runner("zero-shot-classification", classification_model)
+question_answering_runner = get_runner("question-answering", question_answering_model)
 
 svc = bentoml.Service(
-    name="transformers-nlp-service", runners=[summarizer_runner, categorizer_runner]
+    name="transformers-nlp-service", runners=[summarizer_runner, categorizer_runner, question_answering_runner]
 )
 
 
@@ -86,3 +89,9 @@ async def make_analysis(input_data: ClassificationInput) -> GeneralAnalysisOutpu
             if p > CATEGORICAL_THRESHOLD
         },
     )
+
+@svc.api(input=bentoml.io.Text.from_sample(TEXT), output=bentoml.io.Text())
+async def question_answering(text: str) -> str:
+    generated = await question_answering_runner.async_run(text, CONTEXT, max_length=MAX_LENGTH)
+    print(generated)
+    return generated["answer"]

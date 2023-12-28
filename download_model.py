@@ -24,7 +24,9 @@ Celebrity stylist Law Roach on dressing Zendaya and 'faking it 'till you make it
 A quill strapped across her chest, Schafer let us know she is still writing her narrative — and defining herself on her own terms. There's an entire story contained in those two garments. As De Saint Sernin said in the show notes: "Thirty-six looks, each one a heartfelt sentence."
 The powerful ensemble may become one of Law Roach's last celebrity styling credits. Roach announced over social media on Tuesday that he would be retiring from the industry after 14 years of creating conversation-driving looks for the likes of Zendaya, Bella Hadid, Anya Taylor-Joy, Ariana Grande and Megan Thee Stallion."""
 
-CATEGORIES = [
+CONTEXT = "I am an entertaniment reporter"
+
+CATEGORIES = [ 
     "world",
     "politics",
     "technology",
@@ -70,6 +72,12 @@ get_classifier_model = functools.partial(
     download_model, task="zero-shot-classification", model=classification_model
 )
 
+# NOTE: Question Answering model:
+# - valhalla/distilbart-mnli-12-1
+question_answering_model = "deepset/roberta-base-squad2"
+get_question_answering_model = functools.partial(
+    download_model, task="question-answering", model=question_answering_model
+)
 
 def get_runner(task: str, model: str, init_local: bool = False):
     runner = download_model(task, model).to_runner()
@@ -100,4 +108,15 @@ if __name__ == "__main__":
         },
     )
     get_classifier_model()
+    print("\n", "=" * 50, "\n")
+    
+    questions = transformers.pipeline(
+        "question-asnwering", model=question_answering_model
+    )
+    runner = get_runner(
+        "question-answering", question_answering_model, init_local=True
+    )
+    qas = runner.run(TEXT, CONTEXT, multi_label=True)
+    print(qas)
+    get_question_answering_model()
     print("\n", "=" * 50, "\n")
