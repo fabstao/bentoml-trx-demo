@@ -38,6 +38,12 @@ class ClassificationInput(pydantic.BaseModel):
     class Config:
         extra = "forbid"
 
+class QuestionAnsweringInput(pydantic.BaseModel):
+    text: str
+    context: str
+    
+    class Config:
+        extra = "forbid"
 
 @svc.api(
     input=bentoml.io.JSON(pydantic_model=ClassificationInput), output=bentoml.io.JSON()
@@ -90,8 +96,10 @@ async def make_analysis(input_data: ClassificationInput) -> GeneralAnalysisOutpu
         },
     )
 
-@svc.api(input=bentoml.io.Text.from_sample(TEXT), output=bentoml.io.Text())
-async def question_answering(text: str) -> str:
-    generated = await question_answering_runner.async_run(text, CONTEXT, max_length=MAX_LENGTH)
+@svc.api(input=bentoml.io.JSON.from_sample(
+    QuestionAnsweringInput(text=TEXT, context=CONTEXT)
+    ), output=bentoml.io.Text())
+async def question_answering(text: str, context: str) -> str:
+    generated = await question_answering_runner.async_run(text, context, max_length=MAX_LENGTH)
     print(generated)
     return generated["answer"]
