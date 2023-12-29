@@ -6,6 +6,7 @@ import asyncio
 import pydantic
 
 import bentoml
+from bentoml.io import JSON
 from download_model import TEXT
 from download_model import CONTEXT
 from download_model import CATEGORIES
@@ -45,6 +46,10 @@ class QuestionAnsweringInput(pydantic.BaseModel):
     class Config:
         extra = "forbid"
 
+class GeneralAnalysisOutput(pydantic.BaseModel):
+    summary: str
+    categories: t.Dict[str, float]
+
 @svc.api(
     input=bentoml.io.JSON(pydantic_model=ClassificationInput), output=bentoml.io.JSON()
 )
@@ -57,12 +62,6 @@ async def categorize(input_data: ClassificationInput) -> dict[str, float]:
         for c, p in zip(predictions["labels"], predictions["scores"])
         if p > CATEGORICAL_THRESHOLD
     }
-
-
-class GeneralAnalysisOutput(pydantic.BaseModel):
-    summary: str
-    categories: t.Dict[str, float]
-
 
 @svc.api(
     input=bentoml.io.JSON.from_sample(
@@ -96,10 +95,10 @@ async def make_analysis(input_data: ClassificationInput) -> GeneralAnalysisOutpu
         },
     )
 
-@svc.api(input=bentoml.io.JSON.from_sample(
-    QuestionAnsweringInput(text=TEXT, context=CONTEXT)
+@svc.api(input=JSON(
+    pydantic_model=QuestionAnsweringInput
     ), output=bentoml.io.Text())
 async def question_answering(text: str, context: str) -> str:
     generated = await question_answering_runner.async_run(text, context, max_length=MAX_LENGTH)
     print(generated)
-    return generated["answer"]
+    return generated
